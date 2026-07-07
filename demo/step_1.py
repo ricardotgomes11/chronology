@@ -4,9 +4,15 @@ from chronological import read_prompt, cleaned_completion, main
 # prompt src: https://en.wikipedia.org/wiki/Olive_oil
 async def basic_example():
     prompt_summarize_for_a_2nd_grader = read_prompt('summarize_for_a_2nd_grader')
-    completion_summarize_for_a_2nd_grader = await cleaned_completion(prompt_summarize_for_a_2nd_grader, max_tokens=100, engine="davinci", temperature=0.5, top_p=1, frequency_penalty=0.2, stop=["\n\n"])
-
-    return completion_summarize_for_a_2nd_grader
+    return await cleaned_completion(
+        prompt_summarize_for_a_2nd_grader,
+        max_tokens=100,
+        engine="davinci",
+        temperature=0.5,
+        top_p=1,
+        frequency_penalty=0.2,
+        stop=["\n\n"],
+    )
 
 # basic example with variables -- playground reconstruction
 # prompt src: https://en.wikipedia.org/wiki/Olive_oil, https://en.wikipedia.org/wiki/Interior_design

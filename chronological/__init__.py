@@ -74,30 +74,21 @@ def _batch_docs(docs, n):
         yield docs[i:i + n]
 
 def _max_search_doc(resp, n):
-    max_docs = heapq.nlargest(n, resp['data'], key=lambda x: x['score'])
-    return max_docs
+    return heapq.nlargest(n, resp['data'], key=lambda x: x['score'])
 
 
 def _fetch_response(resp, n):
     if n == 1:
         return resp.choices[0].text
-    else:
-        logger.debug('_fetch_response :: returning {0} responses from GPT-3'.format(n))
-        texts = []
-        for idx in range(0, n):
-            texts.append(resp.choices[idx].text)
-        return texts
+    logger.debug('_fetch_response :: returning {0} responses from GPT-3'.format(n))
+    return [resp.choices[idx].text for idx in range(0, n)]
 
 
 def _trimmed_fetch_response(resp, n):
     if n == 1:
         return resp.choices[0].text.strip()
-    else:
-        logger.debug('_trimmed_fetch_response :: returning {0} responses from GPT-3'.format(n))
-        texts = []
-        for idx in range(0, n):
-            texts.append(resp.choices[idx].text.strip())
-        return texts
+    logger.debug('_trimmed_fetch_response :: returning {0} responses from GPT-3'.format(n))
+    return [resp.choices[idx].text.strip() for idx in range(0, n)]
 
 
 def prepend_prompt(new_stuff, prompt):
@@ -206,31 +197,25 @@ async def fetch_max_search_doc(q, docs, engine="ada", min_score_cutoff=-1, full_
     '''
     if n > len(docs):
         return 'N > # of docs'
-   
+
     resp = {'data':[]}
     for batch in _batch_docs(docs, MAX_SEARCH_DOCUMENT_QUANTITY):
         resp['data'].extend((await _search(q, batch, engine=engine))['data'])
 
+    max_docs_filtered = []
     if not full_doc:
         max_docs = _max_search_doc(resp, n)
-        max_docs_filtered = []
-        for doc in max_docs:
-            if float(doc['score']) > min_score_cutoff:
-                max_docs_filtered.append(docs[doc['document']])
-        if len(max_docs_filtered) > 0:
-            return max_docs_filtered
-        else:
-            return None
+        max_docs_filtered.extend(
+            docs[doc['document']]
+            for doc in max_docs
+            if float(doc['score']) > min_score_cutoff
+        )
     else:
         max_docs = _max_search_doc(resp, n)
-        max_docs_filtered = []
-        for doc in max_docs:
-            if float(doc['score']) > min_score_cutoff:
-                max_docs_filtered.append(doc)
-        if len(max_docs_filtered) > 0:
-            return max_docs_filtered
-        else:
-            return None
+        max_docs_filtered.extend(
+            doc for doc in max_docs if float(doc['score']) > min_score_cutoff
+        )
+    return max_docs_filtered if max_docs_filtered else None
 
 
 def main(fn, **args):
